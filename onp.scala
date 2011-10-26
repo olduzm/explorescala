@@ -43,3 +43,13 @@ def then[A, B](first: (MyStr) => Result[A], second: (MyStr) => Result[B]): (MySt
     }
   }
 
+
+type Superint = Int
+class Helper (left: Superint) {
+  def power(right: Superint) = scala.math.pow(left, right)
+}
+
+implicit def Int2Helper (s:Superint) =
+  new Helper(s)
+
+

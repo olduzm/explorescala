@@ -22,8 +22,8 @@ def oneOf(targets:List[Char], input:MyStr) : Result[Char] =
   }
 
 def charRange(start:Char, end:Char):List[Char] = List.range(start, end+1).map(_.toChar)
-def alphaChar(input:MyStr) : Result[Char] = oneOf(charRange('a','z'), input)
-def digitChar(input:MyStr) : Result[Char] = oneOf(charRange('0','9'), input)
+def alphaChar : Parser[Char] = (input => oneOf(charRange('a','z'), input))
+def digitChar : Parser[Char] = (input => oneOf(charRange('0','9'), input))
 
 def number(input:MyStr) : Result[Int] =
   digitChar(input) match {
@@ -97,13 +97,18 @@ manySep1(pAssignment, char(','))("a=5,b=8,c=9".toList)
 manySep1(pAssignment, char(','))("a=5,b=8,c=9,d=1,e=3".toList)
 manySep1(pAssignment, char(','))("a=5.b=8".toList)
 
-type Superint = Int
-class Helper (left: Superint) {
-  def power(right: Superint) = scala.math.pow(left, right)
+class Helper[A] (left: Parser[A]) {
+  def thenRight[B](right: Parser[B]): Parser[B] = (input =>
+    left(input) match {
+      case Failure(e, rem) => Failure(e, rem)
+      case Success(v1, rem2) => right(rem2)
+    }
+  )
 }
 
-implicit def Int2Helper (s:Superint) =
-  new Helper(s)
+implicit def abcdef[A] (parser:Parser[A]) =
+  new Helper(parser)
 
-val two2five = 2 power 5
+val implicitTest = alphaChar thenRight char('=') thenRight digitChar
+implicitTest("a=7".toList)
 

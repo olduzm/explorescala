@@ -14,25 +14,24 @@ def char(target:Char) : Parser[Char] = (input =>
     case _ => Failure("Next char is not " + target, input)
   })
 
-def oneOf(targets:List[Char], input:MyStr) : Result[Char] =
+def oneOf(targets:List[Char]) : Parser[Char] = (input =>
   input match {
     case Nil => Failure("Too few characters", input)
     case c::cs if targets.contains(c) => Success(c, cs)
     case _ => Failure("Next char is not any of " + targets, input )
-  }
+  })
 
 def charRange(start:Char, end:Char):List[Char] = List.range(start, end+1).map(_.toChar)
-def alphaChar : Parser[Char] = (input => oneOf(charRange('a','z'), input))
-def digitChar : Parser[Char] = (input => oneOf(charRange('0','9'), input))
+def alphaChar : Parser[Char] = (input => oneOf(charRange('a','z'))(input))
+def digitChar : Parser[Char] = (input => oneOf(charRange('0','9'))(input))
 
-def number(input:MyStr) : Result[Int] =
+def number : Parser[Int] = (input =>
   digitChar(input) match {
     case Success(c, t) => Success(c - '0', t)
     case Failure(e, rem) => Failure(e, rem)
-  }
+  })
 
-def word(input:MyStr) : Result[Char] =
-  alphaChar(input)
+def word : Parser[Char] = (input => alphaChar(input))
 
 def thenRight[A, B](first: Parser[A], second: Parser[B]): Parser[B] = (input =>
     first(input) match {

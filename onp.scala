@@ -67,28 +67,21 @@ def pAssignment : Parser[Asgnmt] = (input =>
     }
   )
 
-def many[A](parser: Parser[List[A]], input:MyStr, v:A) : Result[List[A]] = {
+def repeated[A](parser: Parser[A], vs:List[A]) : Parser[List[A]] = (input => {
   input match {
-    case Nil => Success(List(v), input)
+    case Nil => Success(vs, input)
     case _ => parser(input) match {
-      case Failure(e2, rem2) => Failure(e2, rem2)
-      case Success(v2, rem2) => Success(v::v2, rem2)
+        case Failure(e, rem) => Failure(e, rem)
+        case Success(v, rem) => repeated(parser, vs:::List(v))(rem)
     }
   }
-}
+})
 
-def repeated[A, B](parser: Parser[A]) : Parser[List[A]] = (input =>
-      parser(input) match {
-        case Failure(e, rem) => Failure(e, rem)
-        case Success(v, rem) => many(repeated(parser), rem, v)
-      }
-  )
-
-def manySep[A, B](itemParser: Parser[A], seperatorParser: Parser[B]) : Parser[List[A]] = (input =>
+def manySep1[A, B](itemParser: Parser[A], seperatorParser: Parser[B]) : Parser[List[A]] = (input =>
     {
       itemParser(input) match {
         case Failure(e, rem) => Failure(e, rem)
-        case Success(v, rem) => many(repeated(thenRight(seperatorParser, itemParser)), rem, v)
+        case Success(v, rem) => repeated(thenRight(seperatorParser, itemParser), List(v))(rem)
       }
     }
   )
@@ -98,11 +91,11 @@ then(then(alphaChar, digitChar), alphaChar) ("s7cs".toList)
 pAssignment("a=7".toList)
 pAssignment("ab7".toList)
 pAssignment("a=".toList)
-manySep(pAssignment, char(','))("a=5".toList)
-manySep(pAssignment, char(','))("a=5,b=8".toList)
-manySep(pAssignment, char(','))("a=5,b=8,c=9".toList)
-manySep(pAssignment, char(','))("a=5,b=8,c=9,d=1,e=3".toList)
-manySep(pAssignment, char(','))("a=5.b=8".toList)
+manySep1(pAssignment, char(','))("a=5".toList)
+manySep1(pAssignment, char(','))("a=5,b=8".toList)
+manySep1(pAssignment, char(','))("a=5,b=8,c=9".toList)
+manySep1(pAssignment, char(','))("a=5,b=8,c=9,d=1,e=3".toList)
+manySep1(pAssignment, char(','))("a=5.b=8".toList)
 
 type Superint = Int
 class Helper (left: Superint) {

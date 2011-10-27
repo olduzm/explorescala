@@ -98,7 +98,11 @@ then(then(alphaChar, digitChar), alphaChar) ("s7cs".toList)
 pAssignment("a=7".toList)
 pAssignment("ab7".toList)
 pAssignment("a=".toList)
+manySep(pAssignment, char(','))("a=5".toList)
+manySep(pAssignment, char(','))("a=5,b=8".toList)
 manySep(pAssignment, char(','))("a=5,b=8,c=9".toList)
+manySep(pAssignment, char(','))("a=5,b=8,c=9,d=1,e=3".toList)
+manySep(pAssignment, char(','))("a=5.b=8".toList)
 
 type Superint = Int
 class Helper (left: Superint) {

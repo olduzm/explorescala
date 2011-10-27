@@ -1,4 +1,5 @@
 
+
 type MyStr = List[Char]
 
 sealed abstract class Result[A]
@@ -66,11 +67,38 @@ def pAssignment : Parser[Asgnmt] = (input =>
     }
   )
 
+def many[A](parser: Parser[List[A]], input:MyStr, v:A) : Result[List[A]] = {
+  input match {
+    case Nil => Success(List(v), input)
+    case _ => parser(input) match {
+      case Failure(e2, rem2) => Failure(e2, rem2)
+      case Success(v2, rem2) => Success(v::v2, rem2)
+    }
+  }
+}
+
+def repeated[A, B](parser: Parser[A]) : Parser[List[A]] = (input =>
+      parser(input) match {
+        case Failure(e, rem) => Failure(e, rem)
+        case Success(v, rem) => many(repeated(parser), rem, v)
+      }
+  )
+
+def manySep[A, B](itemParser: Parser[A], seperatorParser: Parser[B]) : Parser[List[A]] = (input =>
+    {
+      itemParser(input) match {
+        case Failure(e, rem) => Failure(e, rem)
+        case Success(v, rem) => many(repeated(thenRight(seperatorParser, itemParser)), rem, v)
+      }
+    }
+  )
+
 then(then(alphaChar, digitChar), alphaChar) ("fa1l".toList)
 then(then(alphaChar, digitChar), alphaChar) ("s7cs".toList)
 pAssignment("a=7".toList)
 pAssignment("ab7".toList)
 pAssignment("a=".toList)
+manySep(pAssignment, char(','))("a=5,b=8,c=9".toList)
 
 type Superint = Int
 class Helper (left: Superint) {

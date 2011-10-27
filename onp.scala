@@ -33,6 +33,12 @@ def number(input:MyStr) : Result[Int] =
 def word(input:MyStr) : Result[Char] =
   alphaChar(input)
 
+def thenRight[A, B](first: Parser[A], second: Parser[B]): Parser[B] = (input =>
+    first(input) match {
+      case Failure(e, rem) => Failure(e, rem)
+      case Success(v1, rem2) => second(rem2)
+    }
+  )
 
 def thenLeft[A, B](first: Parser[A], second: Parser[B]): Parser[A] = (input =>
       first(input) match {

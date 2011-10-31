@@ -1,4 +1,4 @@
-
+import scala.Console
 
 type MyStr = List[Char]
 
@@ -66,6 +66,47 @@ def pAssignment : Parser[Asgnmt] = (input =>
       case Failure(e, rem) => Failure(e, rem)
     }
   )
+
+def between[A, B, C](pB:Parser[A], p:Parser[B], pE:Parser[C]) : Parser[B] = thenLeft(thenRight(pB, p), pE)
+
+abstract class Exp
+case class CompExp(e1:Exp, op:Char, e2:Exp) extends Exp
+case class Variable(v:Char) extends Exp
+
+def or[A](first: Parser[A], second: Parser[A]) : Parser[A] = (input =>
+    first(input) match {
+      case Success(e, rem) => Success(e, rem)
+      case Failure(e, rem) => second(input) match {
+        case Success(e2, rem2) => Success(e2, rem2)
+        case Failure(e2, rem2) => Failure(e2, rem2)
+      }
+    }
+  )
+
+def operation = oneOf("+*-/".toList)
+
+def variable : Parser[Exp] = (input =>
+    alphaChar(input) match {
+      case Success(v, rem) => Success(Variable(v), rem)
+      case Failure(e, rem) => Failure(e, rem)
+    }
+  )
+
+def simpleExpression : Parser[Exp] = (input =>
+    then(expression, operation)(input) match {
+      case Success((e, o), rem) => expression(rem) match {
+        case Success(e2, rem2) => Success(CompExp(e, o, e2), rem2)
+        case Failure(e2, rem2) => Failure("Failed to parse:" + e2, input)
+      }
+      case Failure(e, rem) => Failure(e, rem)
+    }
+  )
+
+def expression : Parser[Exp] = or(between(char('('), simpleExpression, char(')')), variable)
+
+Console.println(expression("(a+b)".toList))
+Console.println(expression("((a+b)*(c-d))".toList))
+Console.println(expression("((a+b)/f)".toList))
 
 def many[A](parser: Parser[A]) : Parser[List[A]] = (input =>
   parser(input) match {

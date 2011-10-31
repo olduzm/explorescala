@@ -24,6 +24,7 @@ def oneOf(targets:List[Char]) : Parser[Char] = (input =>
 def charRange(start:Char, end:Char):List[Char] = List.range(start, end+1).map(_.toChar)
 def alphaChar : Parser[Char] = (input => oneOf(charRange('a','z'))(input))
 def digitChar : Parser[Char] = (input => oneOf(charRange('0','9'))(input))
+def comma : Parser[Char] = char(',')
 
 def number : Parser[Int] = (input =>
   digitChar(input) match {
@@ -66,24 +67,28 @@ def pAssignment : Parser[Asgnmt] = (input =>
     }
   )
 
-def repeated[A](parser: Parser[A], vs:List[A]) : Parser[List[A]] = (input => {
-  input match {
-    case Nil => Success(vs, input)
-    case _ => parser(input) match {
-        case Failure(e, rem) => Failure(e, rem)
-        case Success(v, rem) => repeated(parser, vs:::List(v))(rem)
+def many[A](parser: Parser[A]) : Parser[List[A]] = (input =>
+  parser(input) match {
+    case Failure(e, rem) => Success(Nil, input)
+    case Success(v, rem) => many(parser)(rem) match {
+        case Success(vs, rem2) => Success(v::vs, rem2)
+        case Failure(e, rem2) => Failure("Many failed unexpectedly! program bug!." + e, rem2)
     }
-  }
-})
+  })
 
 def manySep1[A, B](itemParser: Parser[A], seperatorParser: Parser[B]) : Parser[List[A]] = (input =>
     {
       itemParser(input) match {
         case Failure(e, rem) => Failure(e, rem)
-        case Success(v, rem) => repeated(thenRight(seperatorParser, itemParser), List(v))(rem)
+        case Success(v, rem) => many(thenRight(seperatorParser, itemParser))(rem) match {
+            case Success(vs, rem2) => Success(v::vs, rem2)
+            case Failure(e, rem2) => Failure("Many failed unexpectedly! program bug!." + e, rem2)
+        }
       }
     }
   )
+
+def pAssignmentArray = thenLeft(thenRight(char('['), manySep1(pAssignment, comma)), char(']'))
 
 then(then(alphaChar, digitChar), alphaChar) ("fa1l".toList)
 then(then(alphaChar, digitChar), alphaChar) ("s7cs".toList)
@@ -94,7 +99,13 @@ manySep1(pAssignment, char(','))("a=5".toList)
 manySep1(pAssignment, char(','))("a=5,b=8".toList)
 manySep1(pAssignment, char(','))("a=5,b=8,c=9".toList)
 manySep1(pAssignment, char(','))("a=5,b=8,c=9,d=1,e=3".toList)
+manySep1(pAssignment, char(','))("a=5,b=8,c=9,d=1,e=3helloworld".toList)
 manySep1(pAssignment, char(','))("a=5.b=8".toList)
+many(digitChar)("".toList)
+many(digitChar)("1".toList)
+many(digitChar)("192834".toList)
+many(digitChar)("192834notdigits".toList)
+many(digitChar)("[a=5,b=8,c=9,d=1,e=3]XXXXX".toList)
 
 class Helper[A] (left: Parser[A]) {
   def thenRight[B](right: Parser[B]): Parser[B] = (input =>
